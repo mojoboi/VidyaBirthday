@@ -1,360 +1,388 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catch the Falling Stars</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Fredoka One', cursive;
-            touch-action: none; /* Prevents scrolling on touch devices */
-        }
-        .game-container {
-            background: linear-gradient(to bottom, #89cff0, #f0c2e0);
-            overflow: hidden;
-        }
-        .star {
-            font-size: 2rem;
-            position: absolute;
-        }
-        .player {
-            font-size: 3rem;
-            position: absolute;
-            bottom: 10px;
-            transition: left 0.1s linear;
-        }
-        .game-ui {
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-        .modal {
-            background-color: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-        }
-        .gift-button {
-             background: linear-gradient(45deg, #f87171, #fb923c, #facc15, #a3e635, #4ade80, #38bdf8, #818cf8, #c084fc);
-            background-size: 400% 400%;
-            animation: gradient-animation 10s ease infinite;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        }
-        .gift-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-        }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Catch the Falling Stars</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Fredoka One', cursive;
+      touch-action: none;
+    }
 
-        @keyframes gradient-animation {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-    </style>
+    .game-container {
+      background: linear-gradient(to bottom, #89cff0, #f0c2e0);
+      overflow: hidden;
+    }
+
+    .star {
+      font-size: 2rem;
+      position: absolute;
+      will-change: transform;
+    }
+
+    .player {
+      font-size: 3rem;
+      position: absolute;
+      bottom: 10px;
+      transition: left 0.1s linear;
+    }
+
+    .game-ui {
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .modal {
+      background-color: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+    }
+
+    .gift-button {
+      background: linear-gradient(45deg, #f87171, #fb923c, #facc15, #a3e635, #4ade80, #38bdf8, #818cf8, #c084fc);
+      background-size: 400% 400%;
+      animation: gradient-animation 10s ease infinite;
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+
+    .gift-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    @keyframes gradient-animation {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes gift-wiggle {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      25% { transform: rotate(-6deg) scale(1.06); }
+      50% { transform: rotate(6deg) scale(1.06); }
+      75% { transform: rotate(-4deg) scale(1.06); }
+    }
+    .wiggle {
+      animation: gift-wiggle 1.2s ease-in-out infinite;
+    }
+
+    /* Confetti */
+    .confetti {
+      position: fixed;
+      top: 0;
+      width: 10px;
+      height: 10px;
+      opacity: 0.9;
+      border-radius: 2px;
+      z-index: 50;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body class="bg-pink-100 flex items-center justify-center h-screen">
 
-    <div id="game-container" class="game-container relative w-full max-w-md h-[90vh] max-h-[800px] rounded-2xl shadow-2xl border-4 border-white">
-        
-        <!-- Game UI -->
-        <div class="absolute top-4 left-4 text-white text-2xl game-ui z-10">
-            Caught: <span id="score">0</span>
-        </div>
-        <div class="absolute top-4 right-4 text-white text-2xl game-ui z-10">
-            Missed: <span id="misses">0</span>
-        </div>
-
-        <!-- Player -->
-        <div id="player" class="player">🧺</div>
-
-        <!-- Start/End Modal -->
-        <div id="modal" class="modal absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 rounded-xl">
-            <h2 id="modal-title" class="text-5xl font-bold text-gray-700 mb-4">Catch the Stars!</h2>
-            <p id="modal-text" class="text-gray-600 text-lg mb-6">Move the basket to catch 10 stars. Don't miss more than 5!</p>
-            <div id="gift-container" class="hidden flex-col items-center my-6">
-                 <div id="gift-icon" class="text-8xl cursor-pointer transform transition-transform hover:scale-110">🎁</div>
-                 <p class="mt-4 text-gray-600">You won a gift! Click it!</p>
-            </div>
-            <button id="start-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105">
-                Start Game
-            </button>
-        </div>
-
-        <!-- Gift Audio Player -->
-        <div id="gift-player" class="modal absolute inset-0 z-30 hidden flex-col items-center justify-center text-center p-8 rounded-xl">
-            <h3 class="text-4xl font-bold text-gray-700 mb-6">Choose a Song! 🎵</h3>
-            <div id="audio-player-ui" class="w-full max-w-xs hidden mb-6">
-                <div class="relative pt-1">
-                    <div class="overflow-hidden h-2 text-xs flex rounded bg-pink-200">
-                        <div id="progress-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-pink-500 transition-all duration-100"></div>
-                    </div>
-                </div>
-                <div class="flex justify-between text-sm text-gray-600 mt-1">
-                    <span id="current-time">0:00</span>
-                    <span id="total-duration">0:00</span>
-                </div>
-            </div>
-            <div class="flex space-x-4">
-                <button data-song="1" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">1</button>
-                <button data-song="2" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">2</button>
-                <button data-song="3" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">3</button>
-            </div>
-             <button id="close-gift" class="mt-8 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-6 rounded-full text-lg shadow">
-                Close
-            </button>
-        </div>
-
+  <div id="game-container" class="game-container relative w-full max-w-md h-[90vh] max-h-[800px] rounded-2xl shadow-2xl border-4 border-white">
+    <!-- UI -->
+    <div class="absolute top-4 left-4 text-white text-2xl game-ui z-10">
+      Caught: <span id="score">0</span>
+    </div>
+    <div class="absolute top-4 right-4 text-white text-2xl game-ui z-10">
+      Missed: <span id="misses">0</span>
     </div>
 
-    <script>
-        const gameContainer = document.getElementById('game-container');
-        const player = document.getElementById('player');
-        const scoreEl = document.getElementById('score');
-        const missesEl = document.getElementById('misses');
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalText = document.getElementById('modal-text');
-        const startButton = document.getElementById('start-button');
-        const giftContainer = document.getElementById('gift-container');
-        const giftIcon = document.getElementById('gift-icon');
-        const giftPlayer = document.getElementById('gift-player');
-        const closeGiftButton = document.getElementById('close-gift');
-        const audioPlayerUI = document.getElementById('audio-player-ui');
-        const progressBar = document.getElementById('progress-bar');
-        const currentTimeEl = document.getElementById('current-time');
-        const totalDurationEl = document.getElementById('total-duration');
+    <!-- Player -->
+    <div id="player" class="player">🧺</div>
 
-        let score = 0;
-        let misses = 0;
-        let gameInterval;
-        let fallerInterval;
-        let gameActive = false;
-        let progressInterval;
+    <!-- Modal -->
+    <div id="modal" class="modal absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 rounded-xl">
+      <h2 id="modal-title" class="text-5xl font-bold text-gray-700 mb-4">Hello Vidyaaa</h2>
+      <p id="modal-text" class="text-gray-600 text-lg mb-6">e chinna game gelusthey neeku oka chinna gift :D</p>
 
-        const WIN_SCORE = 10;
-        const LOSE_MISSES = 3;
-        const FALLING_EMOJIS = ['✨', '🎂', '👸', '😘', '❤️', '🎉'];
-        
-        let synth;
-        let sfxSynth;
+      <div id="gift-container" class="hidden flex-col items-center my-6">
+        <div id="gift-icon" class="text-9xl cursor-pointer transform transition-transform hover:scale-110">🎁</div>
+        <p class="mt-4 text-gray-600">You won a gift! Click it!</p>
+      </div>
 
-        // Initialize Tone.js synth on first user interaction
-        function initAudio() {
-            if (!synth) {
-                synth = new Tone.Synth().toDestination();
-            }
-            if (!sfxSynth) {
-                sfxSynth = new Tone.Synth().toDestination();
-            }
+      <button id="start-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105">
+        Start Game
+      </button>
+    </div>
+
+    <!-- Gift Audio Player -->
+    <div id="gift-player" class="modal absolute inset-0 z-30 hidden flex-col items-center justify-center text-center p-8 rounded-xl">
+      <h3 class="text-4xl font-bold text-gray-700 mb-6">Choose a Song! 🙈🎵</h3>
+
+      <div id="audio-player-ui" class="w-full max-w-xs hidden mb-6">
+        <div class="relative pt-1">
+          <div class="overflow-hidden h-2 text-xs flex rounded bg-pink-200">
+            <div id="progress-bar" style="width:0%" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-pink-500 transition-all duration-100"></div>
+          </div>
+        </div>
+        <div class="flex justify-between text-sm text-gray-600 mt-1">
+          <span id="current-time">0:00</span>
+          <span id="total-duration">0:00</span>
+        </div>
+      </div>
+
+      <div class="flex space-x-4">
+        <button data-song="1" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">1</button>
+        <button data-song="2" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">2</button>
+        <button data-song="3" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">3</button>
+      </div>
+
+      <button id="close-gift" class="mt-8 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-6 rounded-full text-lg shadow">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const gameContainer = document.getElementById('game-container');
+    const player = document.getElementById('player');
+    const scoreEl = document.getElementById('score');
+    const missesEl = document.getElementById('misses');
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalText = document.getElementById('modal-text');
+    const startButton = document.getElementById('start-button');
+    const giftContainer = document.getElementById('gift-container');
+    const giftIcon = document.getElementById('gift-icon');
+    const giftPlayer = document.getElementById('gift-player');
+    const closeGiftButton = document.getElementById('close-gift');
+    const audioPlayerUI = document.getElementById('audio-player-ui');
+    const progressBar = document.getElementById('progress-bar');
+    const currentTimeEl = document.getElementById('current-time');
+    const totalDurationEl = document.getElementById('total-duration');
+
+    let score = 0;
+    let misses = 0;
+    let gameActive = false;
+    let fallerInterval;
+    let progressInterval;
+    let sfxSynth;
+    let lastTime = 0;
+
+    const WIN_SCORE = 10;
+    const LOSE_MISSES = 3;
+    const FALLING_EMOJIS = ['✨','🎂','🙈','😘','❤️','🎉'];
+
+    function initAudio() {
+      if (!sfxSynth) sfxSynth = new Tone.Synth().toDestination();
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+      return `${minutes}:${secs}`;
+    }
+
+    // Gift MP3 player
+    function playSong(songId) {
+      if (window.currentAudio) {
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0;
+      }
+      const audioFile = `audio${songId}.mp3`;
+      const audio = new Audio(audioFile);
+      window.currentAudio = audio;
+      audioPlayerUI.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      currentTimeEl.textContent = '0:00';
+      totalDurationEl.textContent = '0:00';
+      audio.addEventListener('loadedmetadata', () => {
+        totalDurationEl.textContent = formatTime(audio.duration);
+      });
+      progressInterval = setInterval(() => {
+        if (audio.duration) {
+          const percent = (audio.currentTime / audio.duration) * 100;
+          progressBar.style.width = `${percent}%`;
+          currentTimeEl.textContent = formatTime(audio.currentTime);
         }
-        
-        // Melodies
-        const songs = {
-            '1': [['C4', '8n'], ['E4', '8n'], ['G4', '8n'], ['C5', '4n']],
-            '2': [['G4', '8n'], ['G4', '8n'], ['A4', '4n'], ['G4', '4n'], ['C5', '4n'], ['B4', '2n']],
-            '3': [['E4', '4n'], ['D4', '4n'], ['C4', '2n'], ['D4', '4n'], ['E4', '4n'], ['E4', '2n']]
-        };
+      }, 200);
+      audio.addEventListener('ended', () => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        setTimeout(() => audioPlayerUI.classList.add('hidden'), 1000);
+      });
+      audio.play();
+    }
 
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-            return `${minutes}:${secs}`;
+    // Controls
+    startButton.addEventListener('click', startGame);
+    giftIcon.addEventListener('click', () => {
+      giftPlayer.classList.remove('hidden');
+      giftPlayer.classList.add('flex');
+    });
+    closeGiftButton.addEventListener('click', () => {
+      giftPlayer.classList.add('hidden');
+      giftPlayer.classList.remove('flex');
+      if (window.currentAudio) {
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0;
+      }
+    });
+    giftPlayer.addEventListener('click', e => {
+      if (e.target.dataset.song) playSong(e.target.dataset.song);
+    });
+
+    gameContainer.addEventListener('mousemove', e => {
+      if (gameActive) updatePlayerPosition(e.clientX);
+    });
+    gameContainer.addEventListener('touchmove', e => {
+      if (gameActive) {
+        e.preventDefault();
+        updatePlayerPosition(e.touches[0].clientX);
+      }
+    });
+
+    function updatePlayerPosition(x) {
+      const rect = gameContainer.getBoundingClientRect();
+      const playerWidth = player.offsetWidth;
+      let newLeft = x - rect.left - playerWidth / 2;
+      if (newLeft < 0) newLeft = 0;
+      if (newLeft > rect.width - playerWidth) newLeft = rect.width - playerWidth;
+      player.style.left = `${newLeft}px`;
+    }
+
+    function startGame() {
+      initAudio();
+      score = 0;
+      misses = 0;
+      scoreEl.textContent = score;
+      missesEl.textContent = misses;
+      gameActive = true;
+      modal.classList.add('hidden');
+      giftIcon.classList.remove('wiggle');
+      if (fallerInterval) clearInterval(fallerInterval);
+      fallerInterval = setInterval(createFallingObject, 1000);
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function createFallingObject() {
+      if (!gameActive) return;
+      const faller = document.createElement('div');
+      faller.classList.add('star');
+      faller.textContent = FALLING_EMOJIS[Math.floor(Math.random() * FALLING_EMOJIS.length)];
+      faller.style.left = `${Math.random() * (gameContainer.offsetWidth - 32)}px`;
+      faller.dataset.y = '-32';
+      const baseSpeed = 5 * 1.2 * 1.2;
+      const randomSpeedFactor = (Math.random() * 3) - 1.5;
+      faller.dataset.speed = baseSpeed + randomSpeedFactor;
+      gameContainer.appendChild(faller);
+    }
+
+    function gameLoop(timestamp) {
+      if (!gameActive) return;
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+      updateFallers(delta);
+      requestAnimationFrame(gameLoop);
+    }
+
+    function updateFallers(delta) {
+      const fallers = document.querySelectorAll('.star');
+      const playerRect = player.getBoundingClientRect();
+      const containerRect = gameContainer.getBoundingClientRect();
+
+      fallers.forEach(faller => {
+        let y = parseFloat(faller.dataset.y);
+        const speed = parseFloat(faller.dataset.speed) || 5;
+        y += (speed * delta) / 16.7;
+        faller.dataset.y = y;
+        faller.style.transform = `translateY(${y}px)`;
+
+        const fallerRect = faller.getBoundingClientRect();
+        if (
+          fallerRect.bottom >= playerRect.top &&
+          fallerRect.right >= playerRect.left &&
+          fallerRect.left <= playerRect.right &&
+          fallerRect.top <= playerRect.bottom
+        ) {
+          const baseMidi = 72;
+          const semitoneOffset = Math.min(score * 0.6, 6);
+          const midi = baseMidi + semitoneOffset;
+          const freq = 440 * Math.pow(2, (midi - 69) / 12);
+          sfxSynth.triggerAttackRelease(freq, "16n");
+          faller.remove();
+          score++;
+          scoreEl.textContent = score;
+          if (score >= WIN_SCORE) endGame(true);
+        } else if (y > containerRect.height) {
+          faller.remove();
+          misses++;
+          missesEl.textContent = misses;
+          if (misses >= LOSE_MISSES) endGame(false);
         }
+      });
+    }
 
-        function playSong(songId) {
-            initAudio();
-            
-            // Stop any currently playing song and clear intervals
-            if (Tone.Transport.state === 'started') {
-                Tone.Transport.stop();
-                Tone.Transport.cancel();
-                clearInterval(progressInterval);
-            }
+    function endGame(isWinner) {
+      gameActive = false;
+      clearInterval(fallerInterval);
+      document.querySelectorAll('.star').forEach(s => s.remove());
+      modal.classList.remove('hidden');
+      startButton.classList.remove('hidden');
+      giftContainer.classList.add('hidden');
 
-            const now = Tone.now();
-            let totalTime = 0;
-            songs[songId].forEach(([, duration]) => {
-                totalTime += Tone.Time(duration).toSeconds();
-            });
+      if (isWinner) {
+        modalTitle.textContent = "Vidya Won! 🎉";
+        modalText.textContent = "Yaay Happy Birthdayyy";
+        startButton.textContent = "Play Again";
+        startButton.classList.remove('text-2xl');
+        startButton.classList.add('text-lg', 'py-2', 'px-4', 'opacity-80');
+        giftContainer.classList.remove('hidden');
+        giftIcon.classList.add('wiggle');
+        triggerConfetti();
 
-            audioPlayerUI.classList.remove('hidden');
-            totalDurationEl.textContent = formatTime(totalTime);
-            currentTimeEl.textContent = '0:00';
-            progressBar.style.width = '0%';
+        const now = Tone.now();
+        sfxSynth.triggerAttackRelease("C5", "8n", now);
+        sfxSynth.triggerAttackRelease("E5", "8n", now + 0.12);
+        sfxSynth.triggerAttackRelease("G5", "8n", now + 0.24);
+        sfxSynth.triggerAttackRelease("C6", "4n", now + 0.36);
+      } else {
+        modalTitle.textContent = "Game Over 😢";
+        modalText.textContent = "No worries :P. Try again!";
+        startButton.textContent = "Try Again";
+        startButton.classList.remove('text-lg');
+        startButton.classList.add('text-2xl');
+        giftIcon.classList.remove('wiggle');
+      }
+    }
 
-            let time = 0;
-            songs[songId].forEach(([note, duration]) => {
-                Tone.Transport.schedule(t => {
-                    synth.triggerAttackRelease(note, duration, t);
-                }, time);
-                time += Tone.Time(duration).toSeconds();
-            });
+    // 🎊 Simple Confetti Generator
+    function triggerConfetti() {
+      const colors = ['#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#c084fc','#f472b6'];
+      const num = 60;
+      for (let i = 0; i < num; i++) {
+        const conf = document.createElement('div');
+        conf.classList.add('confetti');
+        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        conf.style.left = Math.random() * window.innerWidth + 'px';
+        conf.style.opacity = 0.9;
+        const size = 6 + Math.random() * 8;
+        conf.style.width = size + 'px';
+        conf.style.height = size + 'px';
+        document.body.appendChild(conf);
 
-            Tone.Transport.start(now);
-            
-            progressInterval = setInterval(() => {
-                const currentTime = Tone.Transport.seconds;
-                if (currentTime >= totalTime) {
-                    clearInterval(progressInterval);
-                    Tone.Transport.stop();
-                    Tone.Transport.cancel();
-                    progressBar.style.width = '100%';
-                     setTimeout(() => {
-                        audioPlayerUI.classList.add('hidden');
-                     }, 1000);
-                } else {
-                    currentTimeEl.textContent = formatTime(currentTime);
-                    const progressPercent = (currentTime / totalTime) * 100;
-                    progressBar.style.width = `${progressPercent}%`;
-                }
-            }, 100);
-        }
+        const fallTime = 2000 + Math.random() * 2000;
+        const horizontal = (Math.random() - 0.5) * 200;
+        const rotation = Math.random() * 720;
 
-        function updatePlayerPosition(x) {
-            const rect = gameContainer.getBoundingClientRect();
-            const playerWidth = player.offsetWidth;
-            let newLeft = x - rect.left - playerWidth / 2;
-            
-            // Constrain player within the game container
-            if (newLeft < 0) newLeft = 0;
-            if (newLeft > rect.width - playerWidth) newLeft = rect.width - playerWidth;
-
-            player.style.left = `${newLeft}px`;
-        }
-
-        // --- Event Listeners ---
-        startButton.addEventListener('click', startGame);
-        giftIcon.addEventListener('click', () => {
-            giftPlayer.classList.remove('hidden');
-            giftPlayer.classList.add('flex');
+        conf.animate([
+          { transform: `translate(0,0) rotate(0deg)`, opacity: 1 },
+          { transform: `translate(${horizontal}px, ${window.innerHeight + 100}px) rotate(${rotation}deg)`, opacity: 0 }
+        ], {
+          duration: fallTime,
+          easing: 'ease-out',
+          fill: 'forwards'
         });
-        closeGiftButton.addEventListener('click', () => {
-            giftPlayer.classList.add('hidden');
-            giftPlayer.classList.remove('flex');
-            // Stop music when closing modal
-            if (Tone.Transport.state === 'started') {
-                Tone.Transport.stop();
-                Tone.Transport.cancel();
-                clearInterval(progressInterval);
-                audioPlayerUI.classList.add('hidden');
-            }
-        });
-        
-        giftPlayer.addEventListener('click', (e) => {
-            if(e.target.dataset.song) {
-                playSong(e.target.dataset.song);
-            }
-        });
 
-        // Mouse and Touch controls
-        gameContainer.addEventListener('mousemove', (e) => {
-            if(gameActive) updatePlayerPosition(e.clientX);
-        });
-        gameContainer.addEventListener('touchmove', (e) => {
-            if(gameActive) {
-                e.preventDefault();
-                updatePlayerPosition(e.touches[0].clientX);
-            }
-        });
-
-        function startGame() {
-            initAudio(); // Prepare audio context
-            score = 0;
-            misses = 0;
-            scoreEl.textContent = score;
-            missesEl.textContent = misses;
-            gameActive = true;
-
-            modal.classList.add('hidden');
-            
-            // Game loop for star movement and collision
-            gameInterval = setInterval(gameLoop, 50);
-            // Interval for creating new stars
-            fallerInterval = setInterval(createFallingObject, 1000);
-        }
-
-        function createFallingObject() {
-            if (!gameActive) return;
-            const faller = document.createElement('div');
-            faller.classList.add('star'); // Keep class for styling
-            faller.textContent = FALLING_EMOJIS[Math.floor(Math.random() * FALLING_EMOJIS.length)];
-            faller.style.left = `${Math.random() * (gameContainer.offsetWidth - 32)}px`;
-            faller.style.top = '-32px';
-            
-            // Set a random speed for each object
-            const baseSpeed = 5 * 1.2 * 1.2; // ~44% faster base
-            const randomSpeedFactor = (Math.random() * 3) - 1.5; // Randomness: -1.5 to +1.5
-            faller.dataset.speed = baseSpeed + randomSpeedFactor;
-
-            gameContainer.appendChild(faller);
-        }
-
-        function gameLoop() {
-            const fallers = document.querySelectorAll('.star');
-            const playerRect = player.getBoundingClientRect();
-            const containerRect = gameContainer.getBoundingClientRect();
-
-            fallers.forEach(faller => {
-                let top = parseFloat(faller.style.top);
-                const speed = parseFloat(faller.dataset.speed) || 5;
-                top += speed; // Use individual speed
-                faller.style.top = `${top}px`;
-
-                // Collision detection
-                const fallerRect = faller.getBoundingClientRect();
-                if (
-                    fallerRect.bottom >= playerRect.top &&
-                    fallerRect.right >= playerRect.left &&
-                    fallerRect.left <= playerRect.right &&
-                    fallerRect.top <= playerRect.bottom
-                ) {
-                    sfxSynth.triggerAttackRelease("C5", "16n"); // Play catch sound
-                    faller.remove();
-                    score++;
-                    scoreEl.textContent = score;
-                    if (score >= WIN_SCORE) {
-                        endGame(true); // Win
-                    }
-                } else if (top > containerRect.height) {
-                    faller.remove();
-                    misses++;
-                    missesEl.textContent = misses;
-                    if (misses >= LOSE_MISSES) {
-                        endGame(false); // Lose
-                    }
-                }
-            });
-        }
-
-        function endGame(isWinner) {
-            gameActive = false;
-            clearInterval(gameInterval);
-            clearInterval(fallerInterval);
-            document.querySelectorAll('.star').forEach(s => s.remove());
-
-            modal.classList.remove('hidden');
-            startButton.classList.remove('hidden');
-            giftContainer.classList.add('hidden');
-
-            if (isWinner) {
-                modalTitle.textContent = "Vidya Won! 🎉";
-                modalText.textContent = "Yaay Happy Birthdayyy";
-                startButton.textContent = "Play Again";
-                giftContainer.classList.remove('hidden');
-                
-                // Play victory sound
-                const now = Tone.now();
-                sfxSynth.triggerAttackRelease("C5", "8n", now);
-                sfxSynth.triggerAttackRelease("E5", "8n", now + 0.12);
-                sfxSynth.triggerAttackRelease("G5", "8n", now + 0.24);
-                sfxSynth.triggerAttackRelease("C6", "4n", now + 0.36);
-            } else {
-                modalTitle.textContent = "Game Over 😢";
-                modalText.textContent = "No worries :P. Try again!";
-                startButton.textContent = "Try Again";
-            }
-        }
-    </script>
+        setTimeout(() => conf.remove(), fallTime);
+      }
+    }
+  </script>
 </body>
 </html>
-
-

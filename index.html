@@ -14,12 +14,12 @@
     }
 
     .game-container {
-      background: linear-gradient(to bottom, #89cff0, #f0c2e0);
+      background: linear-gradient(to bottom, #4d7bb0, #e18ac6);
       overflow: hidden;
     }
 
     .star {
-      font-size: 2rem;
+      font-size: 2.4rem;
       position: absolute;
       will-change: transform;
     }
@@ -28,7 +28,7 @@
       font-size: 3rem;
       position: absolute;
       bottom: 10px;
-      transition: left 0.1s linear;
+      will-change: transform;
     }
 
     .game-ui {
@@ -36,7 +36,7 @@
     }
 
     .modal {
-      background-color: rgba(255, 255, 255, 0.8);
+      background-color: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(10px);
     }
 
@@ -68,7 +68,6 @@
       animation: gift-wiggle 1.2s ease-in-out infinite;
     }
 
-    /* Confetti */
     .confetti {
       position: fixed;
       top: 0;
@@ -84,7 +83,6 @@
 <body class="bg-pink-100 flex items-center justify-center h-screen">
 
   <div id="game-container" class="game-container relative w-full max-w-md h-[90vh] max-h-[800px] rounded-2xl shadow-2xl border-4 border-white">
-    <!-- UI -->
     <div class="absolute top-4 left-4 text-white text-2xl game-ui z-10">
       Caught: <span id="score">0</span>
     </div>
@@ -92,28 +90,25 @@
       Missed: <span id="misses">0</span>
     </div>
 
-    <!-- Player -->
     <div id="player" class="player">🧺</div>
 
-    <!-- Modal -->
     <div id="modal" class="modal absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 rounded-xl">
       <h2 id="modal-title" class="text-5xl font-bold text-gray-700 mb-4">Hello Vidyaaa</h2>
-      <p id="modal-text" class="text-gray-600 text-lg mb-6">e chinna game gelusthey neeku oka chinna gift :D</p>
+      <p id="modal-text" class="text-gray-600 text-lg mb-3">e chinna game gelusthey neeku oka chinna gift :D</p>
+      <p id="subtext" class="text-gray-500 text-base mb-6">Move the basket and catch 10 falling emojis to win</p>
 
       <div id="gift-container" class="hidden flex-col items-center my-6">
         <div id="gift-icon" class="text-9xl cursor-pointer transform transition-transform hover:scale-110">🎁</div>
         <p class="mt-4 text-gray-600">You won a gift! Click it!</p>
       </div>
 
-      <button id="start-button" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105">
+      <button id="start-button" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105">
         Start Game
       </button>
     </div>
 
-    <!-- Gift Audio Player -->
     <div id="gift-player" class="modal absolute inset-0 z-30 hidden flex-col items-center justify-center text-center p-8 rounded-xl">
-      <h3 class="text-4xl font-bold text-gray-700 mb-6">Choose a Song! 🙈🎵</h3>
-
+      <h3 class="text-4xl font-bold text-gray-700 mb-6">Choose a Song! 🎵</h3>
       <div id="audio-player-ui" class="w-full max-w-xs hidden mb-6">
         <div class="relative pt-1">
           <div class="overflow-hidden h-2 text-xs flex rounded bg-pink-200">
@@ -125,96 +120,130 @@
           <span id="total-duration">0:00</span>
         </div>
       </div>
-
       <div class="flex space-x-4">
         <button data-song="1" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">1</button>
         <button data-song="2" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">2</button>
         <button data-song="3" class="gift-button text-white font-bold text-4xl w-24 h-24 rounded-full shadow-lg">3</button>
       </div>
-
-      <button id="close-gift" class="mt-8 bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-2 px-6 rounded-full text-lg shadow">
+      <button id="close-gift" class="mt-8 bg-gray-300 hover:bg-gray-400 text-gray-700 font-medium py-2 px-6 rounded-full text-lg shadow">
         Close
       </button>
     </div>
   </div>
 
   <script>
-    const gameContainer = document.getElementById('game-container');
     const player = document.getElementById('player');
-    const scoreEl = document.getElementById('score');
-    const missesEl = document.getElementById('misses');
+    const gameContainer = document.getElementById('game-container');
     const modal = document.getElementById('modal');
+    const startButton = document.getElementById('start-button');
     const modalTitle = document.getElementById('modal-title');
     const modalText = document.getElementById('modal-text');
-    const startButton = document.getElementById('start-button');
     const giftContainer = document.getElementById('gift-container');
     const giftIcon = document.getElementById('gift-icon');
+    const scoreEl = document.getElementById('score');
+    const missesEl = document.getElementById('misses');
     const giftPlayer = document.getElementById('gift-player');
     const closeGiftButton = document.getElementById('close-gift');
-    const audioPlayerUI = document.getElementById('audio-player-ui');
     const progressBar = document.getElementById('progress-bar');
+    const audioPlayerUI = document.getElementById('audio-player-ui');
     const currentTimeEl = document.getElementById('current-time');
     const totalDurationEl = document.getElementById('total-duration');
 
-    let score = 0;
-    let misses = 0;
-    let gameActive = false;
-    let fallerInterval;
-    let progressInterval;
-    let sfxSynth;
-    let lastTime = 0;
-
-    const WIN_SCORE = 10;
-    const LOSE_MISSES = 3;
-    const FALLING_EMOJIS = ['✨','🎂','🙈','😘','❤️','🎉'];
+    let score = 0, misses = 0, gameActive = false, fallerInterval, sfxSynth, lastTime = 0, progressInterval;
+    const WIN_SCORE = 10, LOSE_MISSES = 3;
+    const FALLING_EMOJIS = ['🥒','🙈','🎂','🍊','😘','❤️','🎉'];
 
     function initAudio() {
       if (!sfxSynth) sfxSynth = new Tone.Synth().toDestination();
     }
 
-    function formatTime(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
-      return `${minutes}:${secs}`;
-    }
-
-    // Gift MP3 player
-    function playSong(songId) {
-      if (window.currentAudio) {
-        window.currentAudio.pause();
-        window.currentAudio.currentTime = 0;
-      }
-      const audioFile = `audio${songId}.mp3`;
-      const audio = new Audio(audioFile);
-      window.currentAudio = audio;
-      audioPlayerUI.classList.remove('hidden');
-      progressBar.style.width = '0%';
-      currentTimeEl.textContent = '0:00';
-      totalDurationEl.textContent = '0:00';
-      audio.addEventListener('loadedmetadata', () => {
-        totalDurationEl.textContent = formatTime(audio.duration);
-      });
-      progressInterval = setInterval(() => {
-        if (audio.duration) {
-          const percent = (audio.currentTime / audio.duration) * 100;
-          progressBar.style.width = `${percent}%`;
-          currentTimeEl.textContent = formatTime(audio.currentTime);
-        }
-      }, 200);
-      audio.addEventListener('ended', () => {
-        clearInterval(progressInterval);
-        progressBar.style.width = '100%';
-        setTimeout(() => audioPlayerUI.classList.add('hidden'), 1000);
-      });
-      audio.play();
-    }
-
-    // Controls
     startButton.addEventListener('click', startGame);
+    gameContainer.addEventListener('mousemove', e => gameActive && updatePlayerPosition(e.clientX));
+    gameContainer.addEventListener('touchmove', e => {
+      if (gameActive) { e.preventDefault(); updatePlayerPosition(e.touches[0].clientX); }
+    });
+
+    function updatePlayerPosition(x) {
+      const rect = gameContainer.getBoundingClientRect();
+      const pw = player.offsetWidth;
+      let left = x - rect.left - pw / 2;
+      left = Math.max(0, Math.min(left, rect.width - pw));
+      player.style.transform = `translateX(${left}px)`;
+    }
+
+    function startGame() {
+      initAudio();
+      score = misses = 0;
+      scoreEl.textContent = score; missesEl.textContent = misses;
+      gameActive = true; modal.classList.add('hidden');
+      if (fallerInterval) clearInterval(fallerInterval);
+      fallerInterval = setInterval(createFaller, 1000);
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function createFaller() {
+      if (!gameActive) return;
+      const el = document.createElement('div');
+      el.classList.add('star');
+      el.textContent = FALLING_EMOJIS[Math.floor(Math.random()*FALLING_EMOJIS.length)];
+      el.style.left = `${Math.random()*(gameContainer.offsetWidth-32)}px`;
+      el.dataset.y = '-32';
+      el.dataset.speed = 6 + (Math.random()*3-1.5);
+      gameContainer.appendChild(el);
+    }
+
+    function gameLoop(ts) {
+      if (!gameActive) return;
+      const delta = ts - lastTime; lastTime = ts;
+      updateFallers(delta); requestAnimationFrame(gameLoop);
+    }
+
+    function updateFallers(delta) {
+      const fallers = document.querySelectorAll('.star');
+      const pRect = player.getBoundingClientRect(), cRect = gameContainer.getBoundingClientRect();
+      fallers.forEach(f => {
+        let y = parseFloat(f.dataset.y), sp = parseFloat(f.dataset.speed)||5;
+        y += (sp*delta)/16.7; f.dataset.y = y; f.style.transform = `translateY(${y}px)`;
+        const r = f.getBoundingClientRect();
+        if (r.bottom>=pRect.top&&r.right>=pRect.left&&r.left<=pRect.right&&r.top<=pRect.bottom) {
+          const base=72, off=Math.min(score*0.6,6), midi=base+off, freq=440*Math.pow(2,(midi-69)/12);
+          sfxSynth.triggerAttackRelease(freq,"16n"); f.remove(); score++; scoreEl.textContent=score;
+          if (score>=WIN_SCORE) endGame(true);
+        } else if (y>cRect.height) {
+          f.remove(); misses++; missesEl.textContent=misses; if (misses>=LOSE_MISSES) endGame(false);
+        }
+      });
+    }
+
+    function endGame(win) {
+      gameActive=false; clearInterval(fallerInterval); document.querySelectorAll('.star').forEach(s=>s.remove());
+      modal.classList.remove('hidden'); document.getElementById('subtext').classList.add('hidden');
+
+      if (win) {
+        modalTitle.textContent="Vidya Won! 🎉"; modalText.textContent="Yaay Happy Birthdayyy";
+        startButton.textContent="Play Again"; startButton.className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-full text-lg shadow-lg opacity-80";
+        giftContainer.classList.remove('hidden'); giftIcon.classList.add('wiggle'); triggerConfetti();
+        const n=Tone.now(); sfxSynth.triggerAttackRelease("C5","8n",n);
+        sfxSynth.triggerAttackRelease("E5","8n",n+0.12); sfxSynth.triggerAttackRelease("G5","8n",n+0.24);
+        sfxSynth.triggerAttackRelease("C6","4n",n+0.36);
+      } else {
+        modalTitle.textContent="Game Over 😢"; modalText.textContent="No worries :P. Try again!";
+        startButton.textContent="Try Again"; startButton.className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105";
+        giftIcon.classList.remove('wiggle');
+        const n=Tone.now();
+        sfxSynth.triggerAttackRelease("E4","8n",n);
+        sfxSynth.triggerAttackRelease("C4","8n",n+0.2);
+        sfxSynth.triggerAttackRelease("A3","4n",n+0.4);
+      }
+    }
+
+    // 🎁 Gift player logic
     giftIcon.addEventListener('click', () => {
       giftPlayer.classList.remove('hidden');
       giftPlayer.classList.add('flex');
     });
+
     closeGiftButton.addEventListener('click', () => {
       giftPlayer.classList.add('hidden');
       giftPlayer.classList.remove('flex');
@@ -223,165 +252,61 @@
         window.currentAudio.currentTime = 0;
       }
     });
-    giftPlayer.addEventListener('click', e => {
+
+    giftPlayer.addEventListener('click', (e) => {
       if (e.target.dataset.song) playSong(e.target.dataset.song);
     });
 
-    gameContainer.addEventListener('mousemove', e => {
-      if (gameActive) updatePlayerPosition(e.clientX);
-    });
-    gameContainer.addEventListener('touchmove', e => {
-      if (gameActive) {
-        e.preventDefault();
-        updatePlayerPosition(e.touches[0].clientX);
+    function formatTime(s) {
+      const m = Math.floor(s / 60);
+      const sec = Math.floor(s % 60).toString().padStart(2, "0");
+      return `${m}:${sec}`;
+    }
+
+    function playSong(songId) {
+      if (window.currentAudio) {
+        window.currentAudio.pause();
+        window.currentAudio.currentTime = 0;
       }
-    });
+      const audioFile = `audio${songId}.mp3`;
+      const audio = new Audio(audioFile);
+      window.currentAudio = audio;
 
-    function updatePlayerPosition(x) {
-      const rect = gameContainer.getBoundingClientRect();
-      const playerWidth = player.offsetWidth;
-      let newLeft = x - rect.left - playerWidth / 2;
-      if (newLeft < 0) newLeft = 0;
-      if (newLeft > rect.width - playerWidth) newLeft = rect.width - playerWidth;
-      player.style.left = `${newLeft}px`;
-    }
+      audioPlayerUI.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      currentTimeEl.textContent = '0:00';
+      totalDurationEl.textContent = '0:00';
 
-    function startGame() {
-      initAudio();
-      score = 0;
-      misses = 0;
-      scoreEl.textContent = score;
-      missesEl.textContent = misses;
-      gameActive = true;
-      modal.classList.add('hidden');
-      giftIcon.classList.remove('wiggle');
-      if (fallerInterval) clearInterval(fallerInterval);
-      fallerInterval = setInterval(createFallingObject, 1000);
-      lastTime = performance.now();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function createFallingObject() {
-      if (!gameActive) return;
-      const faller = document.createElement('div');
-      faller.classList.add('star');
-      faller.textContent = FALLING_EMOJIS[Math.floor(Math.random() * FALLING_EMOJIS.length)];
-      faller.style.left = `${Math.random() * (gameContainer.offsetWidth - 32)}px`;
-      faller.dataset.y = '-32';
-      const baseSpeed = 5 * 1.2 * 1.2;
-      const randomSpeedFactor = (Math.random() * 3) - 1.5;
-      faller.dataset.speed = baseSpeed + randomSpeedFactor;
-      gameContainer.appendChild(faller);
-    }
-
-    function gameLoop(timestamp) {
-      if (!gameActive) return;
-      const delta = timestamp - lastTime;
-      lastTime = timestamp;
-      updateFallers(delta);
-      requestAnimationFrame(gameLoop);
-    }
-
-    function updateFallers(delta) {
-      const fallers = document.querySelectorAll('.star');
-      const playerRect = player.getBoundingClientRect();
-      const containerRect = gameContainer.getBoundingClientRect();
-
-      fallers.forEach(faller => {
-        let y = parseFloat(faller.dataset.y);
-        const speed = parseFloat(faller.dataset.speed) || 5;
-        y += (speed * delta) / 16.7;
-        faller.dataset.y = y;
-        faller.style.transform = `translateY(${y}px)`;
-
-        const fallerRect = faller.getBoundingClientRect();
-        if (
-          fallerRect.bottom >= playerRect.top &&
-          fallerRect.right >= playerRect.left &&
-          fallerRect.left <= playerRect.right &&
-          fallerRect.top <= playerRect.bottom
-        ) {
-          const baseMidi = 72;
-          const semitoneOffset = Math.min(score * 0.6, 6);
-          const midi = baseMidi + semitoneOffset;
-          const freq = 440 * Math.pow(2, (midi - 69) / 12);
-          sfxSynth.triggerAttackRelease(freq, "16n");
-          faller.remove();
-          score++;
-          scoreEl.textContent = score;
-          if (score >= WIN_SCORE) endGame(true);
-        } else if (y > containerRect.height) {
-          faller.remove();
-          misses++;
-          missesEl.textContent = misses;
-          if (misses >= LOSE_MISSES) endGame(false);
-        }
+      audio.addEventListener('loadedmetadata', () => {
+        totalDurationEl.textContent = formatTime(audio.duration);
       });
+
+      progressInterval = setInterval(() => {
+        if (audio.duration) {
+          const percent = (audio.currentTime / audio.duration) * 100;
+          progressBar.style.width = `${percent}%`;
+          currentTimeEl.textContent = formatTime(audio.currentTime);
+        }
+      }, 200);
+
+      audio.addEventListener('ended', () => {
+        clearInterval(progressInterval);
+        progressBar.style.width = '100%';
+        setTimeout(() => audioPlayerUI.classList.add('hidden'), 1000);
+      });
+
+      audio.play();
     }
 
-    function endGame(isWinner) {
-      gameActive = false;
-      clearInterval(fallerInterval);
-      document.querySelectorAll('.star').forEach(s => s.remove());
-      modal.classList.remove('hidden');
-      startButton.classList.remove('hidden');
-      giftContainer.classList.add('hidden');
-
-      if (isWinner) {
-        modalTitle.textContent = "Vidya Won! 🎉";
-        modalText.textContent = "Yaay Happy Birthdayyy";
-        startButton.textContent = "Play Again";
-        startButton.classList.remove('text-2xl');
-        startButton.classList.add('text-lg', 'py-2', 'px-4', 'opacity-80');
-        giftContainer.classList.remove('hidden');
-        giftIcon.classList.add('wiggle');
-        triggerConfetti();
-
-        const now = Tone.now();
-        sfxSynth.triggerAttackRelease("C5", "8n", now);
-        sfxSynth.triggerAttackRelease("E5", "8n", now + 0.12);
-        sfxSynth.triggerAttackRelease("G5", "8n", now + 0.24);
-        sfxSynth.triggerAttackRelease("C6", "4n", now + 0.36);
-      } else {
-        modalTitle.textContent = "Game Over 😢";
-        modalText.textContent = "No worries :P. Try again!";
-        startButton.textContent = "Try Again";
-        startButton.classList.remove('text-lg');
-        startButton.classList.add('text-2xl');
-        giftIcon.classList.remove('wiggle');
-      }
-    }
-
-    // 🎊 Simple Confetti Generator
     function triggerConfetti() {
-      const colors = ['#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#c084fc','#f472b6'];
-      const num = 60;
-      for (let i = 0; i < num; i++) {
-        const conf = document.createElement('div');
-        conf.classList.add('confetti');
-        conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        conf.style.left = Math.random() * window.innerWidth + 'px';
-        conf.style.opacity = 0.9;
-        const size = 6 + Math.random() * 8;
-        conf.style.width = size + 'px';
-        conf.style.height = size + 'px';
-        document.body.appendChild(conf);
-
-        const fallTime = 2000 + Math.random() * 2000;
-        const horizontal = (Math.random() - 0.5) * 200;
-        const rotation = Math.random() * 720;
-
-        conf.animate([
-          { transform: `translate(0,0) rotate(0deg)`, opacity: 1 },
-          { transform: `translate(${horizontal}px, ${window.innerHeight + 100}px) rotate(${rotation}deg)`, opacity: 0 }
-        ], {
-          duration: fallTime,
-          easing: 'ease-out',
-          fill: 'forwards'
-        });
-
-        setTimeout(() => conf.remove(), fallTime);
-      }
+      const colors=['#f87171','#fb923c','#facc15','#4ade80','#38bdf8','#818cf8','#c084fc','#f472b6'];
+      for(let i=0;i<60;i++){const c=document.createElement('div');c.classList.add('confetti');
+        c.style.backgroundColor=colors[Math.floor(Math.random()*colors.length)];
+        c.style.left=Math.random()*window.innerWidth+'px';const s=6+Math.random()*8;c.style.width=s+'px';c.style.height=s+'px';
+        document.body.appendChild(c);
+        const t=2000+Math.random()*2000,h=(Math.random()-.5)*200,r=Math.random()*720;
+        c.animate([{transform:`translate(0,0) rotate(0deg)`,opacity:1},{transform:`translate(${h}px,${window.innerHeight+100}px) rotate(${r}deg)`,opacity:0}],
+          {duration:t,easing:'ease-out',fill:'forwards'});setTimeout(()=>c.remove(),t);}
     }
   </script>
 </body>

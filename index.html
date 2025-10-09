@@ -17,14 +17,15 @@
     .gift-button {
       background:linear-gradient(45deg,#f87171,#fb923c,#facc15,#a3e635,#4ade80,#38bdf8,#818cf8,#c084fc);
       background-size:400% 400%; animation:gradient-animation 10s ease infinite;
-      transition:transform 0.2s,box-shadow 0.2s;
+      transition:transform .2s,box-shadow .2s;
     }
-    .gift-button:hover { transform:scale(1.05); box-shadow:0 10px 20px rgba(0,0,0,0.2); }
-    @keyframes gradient-animation {
-      0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}
-    }
-    @keyframes gift-wiggle {
-      0%,100%{transform:rotate(0) scale(1)}25%{transform:rotate(-6deg) scale(1.06)}50%{transform:rotate(6deg) scale(1.06)}75%{transform:rotate(-4deg) scale(1.06)}
+    .gift-button:hover{transform:scale(1.05);box-shadow:0 10px 20px rgba(0,0,0,.2);}
+    @keyframes gradient-animation{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    @keyframes gift-wiggle{
+      0%,100%{transform:rotate(0) scale(1)}
+      25%{transform:rotate(-6deg) scale(1.06)}
+      50%{transform:rotate(6deg) scale(1.06)}
+      75%{transform:rotate(-4deg) scale(1.06)}
     }
     .wiggle{animation:gift-wiggle 1.2s ease-in-out infinite;}
     .confetti{position:fixed;top:0;width:10px;height:10px;opacity:.9;border-radius:2px;z-index:50;pointer-events:none;}
@@ -86,11 +87,30 @@ progressBar=document.getElementById('progress-bar'),audioPlayerUI=document.getEl
 currentTimeEl=document.getElementById('current-time'),totalDurationEl=document.getElementById('total-duration');
 
 let score=0,misses=0,gameActive=false,fallerInterval,sfxSynth,lastTime=0,progressInterval;
+let wonAudio,loseAudio,missAudio;
 const WIN_SCORE=10,LOSE_MISSES=3,FALLING_EMOJIS=['🥒','🙈','🎂','🍊','😘','❤️','🎉'];
 
 function initAudio(){ if(!sfxSynth) sfxSynth=new Tone.Synth().toDestination(); Tone.start(); }
 
-startButton.addEventListener('click',()=>{initAudio();startGame();});
+// 🔊 Preload and unlock the mp3s
+function preloadSounds(){
+  wonAudio=new Audio('won.mp3');
+  loseAudio=new Audio('lose.mp3');
+  missAudio=new Audio('miss.mp3');
+  [wonAudio,loseAudio,missAudio].forEach(a=>{
+    a.volume=0;
+    a.play().then(()=>{
+      a.pause(); a.currentTime=0; a.volume=1;
+    }).catch(()=>{});
+  });
+}
+
+startButton.addEventListener('click',()=>{
+  initAudio();
+  preloadSounds(); // unlocks audio on first gesture
+  startGame();
+});
+
 gameContainer.addEventListener('mousemove',e=>gameActive&&updatePlayerPosition(e.clientX));
 gameContainer.addEventListener('touchmove',e=>{if(gameActive){e.preventDefault();updatePlayerPosition(e.touches[0].clientX);}});
 
@@ -140,7 +160,7 @@ function updateFallers(delta){
     }else if(y>cRect.height){
       f.remove();misses++;missesEl.textContent=misses;
       // ❌ Miss sound
-      const missTone=new Audio('miss.mp3');missTone.play();
+      if(missAudio){missAudio.currentTime=0;missAudio.play();}
       if(misses>=LOSE_MISSES)endGame(false);
     }
   });
@@ -158,14 +178,14 @@ function endGame(win){
     startButton.className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-full text-lg shadow-lg opacity-80";
     giftContainer.classList.remove('hidden');giftIcon.classList.add('wiggle');
     triggerConfetti();
-    new Audio('won.mp3').play();
+    if(wonAudio){wonAudio.currentTime=0;wonAudio.play();}
   }else{
     modalTitle.textContent="Game Over 😢";
     modalText.textContent="No worries :P. Try again!";
     startButton.textContent="Try Again";
     startButton.className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-full text-2xl shadow-lg transition-transform transform hover:scale-105";
     giftIcon.classList.remove('wiggle');
-    new Audio('lose.mp3').play();
+    if(loseAudio){loseAudio.currentTime=0;loseAudio.play();}
   }
 }
 
